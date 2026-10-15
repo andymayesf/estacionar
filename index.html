@@ -76,6 +76,19 @@ canvas{display:block;width:100%;height:100%}
 .now .r{margin-top:8px;font-size:13px;background:var(--accent-soft);border-radius:6px;padding:7px 9px}
 @media (max-width:900px){.now{display:grid}}
 @media (max-width:600px){.tabs{width:100%}.tab{flex:1;justify-content:center}.opt-toggles{width:100%;justify-content:space-between}}
+/* Selector de vista */
+.controls-top{display:flex;flex-wrap:wrap;gap:10px;align-items:center;justify-content:flex-end}
+.views .tab{font-size:14px;padding:9px 12px}
+.view-toggle{display:none;position:absolute;right:104px;top:10px;z-index:3;appearance:none;border:0;background:rgba(18,20,23,.82);color:#f1f3f1;border-radius:9px;height:40px;padding:0 12px;align-items:center;gap:6px;font:600 13px var(--font-body);cursor:pointer}
+.view-toggle svg{width:18px;height:18px}
+.view-toggle:focus-visible{outline:3px solid var(--accent);outline-offset:2px}
+#gl{position:absolute;inset:0;width:100%;height:100%;display:block}
+#cv{position:relative;z-index:1}
+.canvas-box .hud,.canvas-box .caption,.canvas-box .fs-toggle,.canvas-box .view-toggle{z-index:2}
+.gl-note{font-size:13px;color:var(--muted)}
+.views .short{display:none}
+@media (max-width:600px){.views .short{display:inline}.views .long{display:none}}
+@media (max-width:600px){.controls-top{width:100%}.controls-top .tabs{width:100%}.views .tab{flex:1;justify-content:center;padding:9px 6px}}
 /* Pantalla completa */
 .stage.fs{position:fixed;z-index:1000;top:0;left:0;width:100vw;height:100vh;border-radius:0;display:flex;flex-direction:column;background:#16191c;
   padding:env(safe-area-inset-top,0px) env(safe-area-inset-right,0px) env(safe-area-inset-bottom,0px) env(safe-area-inset-left,0px)}
@@ -86,7 +99,8 @@ canvas{display:block;width:100%;height:100%}
 .stage.fs .btn{min-height:34px;padding:5px 10px}
 .stage.fs .opt-toggles,.stage.fs .now{display:none}
 .stage.fs .caption{display:flex;bottom:8px}
-.stage.fs .hud{top:10px;max-width:calc(100% - 150px)}
+.stage.fs .hud{top:10px;max-width:calc(100% - 300px)}
+.stage.fs .view-toggle{display:inline-flex}
 .stage.fs .fs-toggle{top:10px;bottom:auto}
 .stage.fs .fs-toggle .lbl{display:inline}
 html.fs-lock,html.fs-lock body{overflow:hidden}
@@ -146,21 +160,29 @@ select.btn{padding-right:8px}
       <div class="sign" aria-hidden="true">E</div>
       <div>
         <h1>Escuela de Estacionamiento</h1>
-        <p class="sub">Vista aérea de las dos maniobras, paso a paso. Tocá un paso para verlo, o reproducí la maniobra completa.</p>
+        <p class="sub">Las dos maniobras paso a paso, vistas desde arriba, desde el asiento del conductor o con la cámara trasera. Tocá un paso para verlo, o reproducí la maniobra completa.</p>
       </div>
     </div>
+    <div class="controls-top">
     <div class="tabs" role="tablist" aria-label="Tipo de estacionamiento">
       <button class="tab" role="tab" id="tab-a45" aria-selected="true">
         <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M3 20h18M2 20l4-8M8 20l4-8M14 20l4-8"/></svg>En 45°</button>
       <button class="tab" role="tab" id="tab-par" aria-selected="false">
         <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M3 18h18"/><rect x="3" y="11" width="7" height="5" rx="1.5"/><rect x="14" y="11" width="7" height="5" rx="1.5"/></svg>En paralelo</button>
     </div>
+    <div class="tabs views" role="radiogroup" aria-label="Vista">
+      <button class="tab" role="radio" data-view="aerea" aria-checked="true"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="4" y="4" width="16" height="16" rx="2"/><path d="M4 14h16M10 4v10"/></svg>Aérea</button>
+      <button class="tab" role="radio" data-view="conductor" aria-checked="false"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="8"/><circle cx="12" cy="12" r="2"/><path d="M4 12h6M14 12h6M12 14v6"/></svg>Conductor</button>
+      <button class="tab" role="radio" data-view="trasera" aria-checked="false"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="3" y="7" width="13" height="10" rx="2"/><path d="M16 11l5-3v8l-5-3"/></svg><span class="long">Cámara trasera</span><span class="short">Trasera</span></button>
+    </div>
+    </div>
   </header>
 
   <div class="main">
     <section class="stage" aria-label="Diagrama animado">
       <div class="canvas-box" id="box">
-        <canvas id="cv" role="img" aria-label="Vista aérea de la maniobra"></canvas>
+        <canvas id="gl" hidden aria-hidden="true"></canvas>
+        <canvas id="cv" role="img" aria-label="Animación de la maniobra"></canvas>
         <div class="hud">
           <div class="chip"><span class="gear d" id="gear">D</span><div><small>Marcha</small><span id="gearTxt">1ª</span></div></div>
           <div class="chip">
@@ -179,6 +201,7 @@ select.btn{padding-right:8px}
           </div>
         </div>
         <div class="caption"><span id="cap"></span></div>
+        <button class="view-toggle" id="viewBtn" type="button" aria-label="Cambiar vista"><svg viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="2"><path d="M1 8s2.5-5 7-5 7 5 7 5-2.5 5-7 5-7-5-7-5z"/><circle cx="8" cy="8" r="2"/></svg><span id="viewLbl">Aérea</span></button>
         <button class="fs-toggle" id="fsBtn" type="button" aria-label="Pantalla completa">
           <svg id="fsIco" viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="2"><path d="M2 6V2h4M10 2h4v4M14 10v4h-4M6 14H2v-4"/></svg>
           <span class="lbl" id="fsLbl">Pantalla completa</span>
@@ -218,12 +241,14 @@ select.btn{padding-right:8px}
         <span><i class="sw" style="background:#f5c22b"></i>Referencia del paso</span>
         <span><i class="sw" style="background:#7ec8ff"></i>Recorrido del eje trasero</span>
       </div>
+      <p class="gl-note" id="glNote" hidden>Este navegador no puede mostrar las vistas del conductor y de la cámara trasera. La vista aérea funciona igual.</p>
     </aside>
   </div>
 
   <div class="extra" id="extra"></div>
 </div>
 
+<script src="https://cdnjs.cloudflare.com/ajax/libs/three.js/r128/three.min.js"></script>
 <script>
 (()=>{
 /* ---------- Geometría del auto (metros) ---------- */
@@ -634,7 +659,240 @@ function hud(s,clock){
 }
 
 let cur=SC.a45, T=0, playing=false, speed=1, last=0, stopAt=null, trackFills=[];
-function draw(clock=performance.now()){const s=drawScene(clock);hud(s,clock);}
+function draw(clock=performance.now()){
+  let s;
+  if(viewMode!=='aerea'&&initGL()){s=stateAt(cur,T);render3d(s,clock);drawOverlay3d(s,clock);}
+  else s=drawScene(clock);
+  hud(s,clock);
+}
+
+/* ================= Vistas en primera persona (three.js) ================= */
+const glc=document.getElementById('gl');
+let viewMode='aerea', G=null, worldKey=null;
+const VIEWS={aerea:'Aérea',conductor:'Conductor',trasera:'Cámara trasera'};
+function initGL(){
+  if(G!==null)return G;
+  if(!window.THREE){G=false;return G;}
+  try{
+    const r=new THREE.WebGLRenderer({canvas:glc,antialias:true});
+    r.setScissorTest(true);
+    const scene=new THREE.Scene();
+    scene.background=new THREE.Color(0xbfd3e4);scene.fog=new THREE.Fog(0xbfd3e4,50,170);
+    scene.add(new THREE.HemisphereLight(0xf2f6ff,0x56554f,0.85));
+    const sun=new THREE.DirectionalLight(0xfff6e8,0.7);sun.position.set(-40,70,-25);scene.add(sun);
+    const root=new THREE.Group();root.matrixAutoUpdate=false;scene.add(root);
+    G={r,scene,root,cam:new THREE.PerspectiveCamera(55,1,0.05,400),size:''};
+    G.own=makeCar(0xd63a2f,true);root.add(G.own.group);
+    // marcador de referencia
+    const mk=new THREE.Group();
+    const ring=new THREE.Mesh(new THREE.RingGeometry(0.28,0.42,32),new THREE.MeshBasicMaterial({color:0xf5c22b,side:THREE.DoubleSide,fog:false}));
+    ring.rotation.x=-Math.PI/2;ring.position.y=0.04;mk.add(ring);
+    const pole=new THREE.Mesh(new THREE.CylinderGeometry(0.03,0.03,1.1,8),new THREE.MeshBasicMaterial({color:0xf5c22b,fog:false,side:THREE.DoubleSide}));pole.position.y=0.6;mk.add(pole);
+    const tip=new THREE.Mesh(new THREE.ConeGeometry(0.16,0.3,12),new THREE.MeshBasicMaterial({color:0xf5c22b,fog:false,side:THREE.DoubleSide}));tip.rotation.x=Math.PI;tip.position.y=1.3;mk.add(tip);
+    G.marker=mk;root.add(mk);
+    G.guides=new THREE.Group();root.add(G.guides);
+    return G;
+  }catch(e){G=false;return G;}
+}
+const MAT={};
+function mat(c,basic){const k=c+(basic?'b':'');if(!MAT[k])MAT[k]=basic?new THREE.MeshBasicMaterial({color:c,side:THREE.DoubleSide}):new THREE.MeshLambertMaterial({color:c,side:THREE.DoubleSide});return MAT[k];}
+function mbox(w,h,d,c,x,y,z,parent){const m=new THREE.Mesh(new THREE.BoxGeometry(w,h,d),typeof c==='number'?mat(c):c);m.position.set(x,y,z);parent&&parent.add(m);return m;}
+function texCanvas(size,paint){const c=document.createElement('canvas');c.width=c.height=size;paint(c.getContext('2d'),size);const t=new THREE.CanvasTexture(c);t.wrapS=t.wrapT=THREE.RepeatWrapping;return t;}
+
+function makeCar(color,own){
+  const g=new THREE.Group();const parts={group:g};
+  const shell=new THREE.Group();g.add(shell);parts.shell=shell;
+  const bodyM=mat(color), glass=mat(0x1b2430), dark=mat(0x111111);
+  // carrocería (marco local: x adelante desde el eje trasero, z a la derecha)
+  mbox(2.45+RO,0.6,W,bodyM,(2.45-RO)/2,0.6,0,shell);                        // de la cola al parabrisas
+  const hood=mbox(LEN-RO-2.45,0.5,W-0.06,bodyM,2.45+(LEN-RO-2.45)/2,0.55,0,null);g.add(hood);parts.hood=hood;
+  mbox(2.2,0.5,1.58,glass,0.62,1.15,0,shell);                                // habitáculo vidriado
+  mbox(1.6,0.06,1.5,bodyM,0.6,1.42,0,shell);                                // techo
+  mbox(0.12,0.16,0.45,mat(0x9a1a14),-RO-0.01,0.75,-0.62,shell);mbox(0.12,0.16,0.45,mat(0x9a1a14),-RO-0.01,0.75,0.62,shell);
+  const hl=mat(0xfff4cf,true);mbox(0.08,0.14,0.42,hl,LEN-RO+0.005,0.68,-0.6,g);mbox(0.08,0.14,0.42,hl,LEN-RO+0.005,0.68,0.6,g);
+  // espejos
+  mbox(0.18,0.14,0.16,bodyM,2.05,1.0,-1.0,shell);mbox(0.18,0.14,0.16,bodyM,2.05,1.0,1.0,shell);
+  // ruedas
+  const wg=new THREE.CylinderGeometry(0.31,0.31,0.22,18);
+  const wheel=(x,z)=>{const pv=new THREE.Group();pv.position.set(x,0.31,z);const m=new THREE.Mesh(wg,dark);m.rotation.x=Math.PI/2;pv.add(m);g.add(pv);return pv;};
+  wheel(0,-0.8);wheel(0,0.8);parts.fl=wheel(WB,-0.8);parts.fr=wheel(WB,0.8);
+  // sombra
+  const sh=new THREE.Mesh(new THREE.PlaneGeometry(LEN+0.3,W+0.3),new THREE.MeshBasicMaterial({color:0x000000,transparent:true,opacity:0.35,depthWrite:false,side:THREE.DoubleSide}));
+  sh.rotation.x=-Math.PI/2;sh.position.set(LEN/2-RO,0.015,0);g.add(sh);parts.shadow=sh;
+  return parts;
+}
+function placeCar(parts,p,steer=0){parts.group.position.set(p.x,0,p.y);parts.group.rotation.y=-p.t;if(parts.fl){parts.fl.rotation.y=-steer;parts.fr.rotation.y=-steer;}}
+function stripe(x1,z1,x2,z2,w,color,parent,y=0.02){
+  const len=Math.hypot(x2-x1,z2-z1);const m=new THREE.Mesh(new THREE.PlaneGeometry(len,w),mat(color));
+  m.rotation.x=-Math.PI/2;m.rotation.z=-Math.atan2(z2-z1,x2-x1);m.position.set((x1+x2)/2,y,(z1+z2)/2);parent.add(m);return m;}
+function dashed(x1,x2,z,w,on,off,color,parent){for(let x=x1;x<x2;x+=on+off)stripe(x,z,Math.min(x+on,x2),z,w,color,parent);}
+function rng(seed){return()=>{seed=(seed*16807)%2147483647;return seed/2147483647;};}
+
+function buildWorld(key){
+  const g=initGL();if(!g||worldKey===key)return;
+  if(g.world){g.root.remove(g.world);}
+  const w=new THREE.Group();g.world=w;g.root.add(w);worldKey=key;
+  const farZ=key==='par'?-14:-16, centerZ=key==='par'?-7.4:-9.6;
+  const asphalt=texCanvas(256,(c,n)=>{c.fillStyle='#45494e';c.fillRect(0,0,n,n);for(let i=0;i<9000;i++){const v=55+Math.random()*45|0;c.fillStyle=`rgba(${v},${v+2},${v+5},${Math.random()*.6})`;c.fillRect(Math.random()*n,Math.random()*n,1.5,1.5);}});
+  asphalt.repeat.set(100,(-farZ)/4);
+  const road=new THREE.Mesh(new THREE.PlaneGeometry(400,-farZ),new THREE.MeshLambertMaterial({map:asphalt,side:THREE.DoubleSide}));
+  road.rotation.x=-Math.PI/2;road.position.set(0,0,farZ/2);w.add(road);
+  const tiles=texCanvas(128,(c,n)=>{c.fillStyle='#c4c0b6';c.fillRect(0,0,n,n);c.strokeStyle='#9e998d';c.lineWidth=3;c.strokeRect(0,0,n,n);for(let i=0;i<600;i++){c.fillStyle=`rgba(0,0,0,${Math.random()*.08})`;c.fillRect(Math.random()*n,Math.random()*n,2,2);}});
+  tiles.repeat.set(400,6);
+  const side=(z0,z1)=>{const m=new THREE.Mesh(new THREE.PlaneGeometry(400,Math.abs(z1-z0)),new THREE.MeshLambertMaterial({map:tiles,side:THREE.DoubleSide}));m.rotation.x=-Math.PI/2;m.position.set(0,0.15,(z0+z1)/2);w.add(m);};
+  // cordones y veredas a ambos lados
+  mbox(400,0.15,0.2,0xdedad2,0,0.075,0.1,w);side(0.2,6.2);
+  mbox(400,0.15,0.2,0xdedad2,0,0.075,farZ-0.1,w);side(farZ-6.2,farZ-0.2);
+  // eje de calzada
+  dashed(-200,200,centerZ,0.12,3,3,0xf0f0eb,w);
+  // edificios y árboles
+  const rand=rng(key==='par'?7:13);const cols=[0xd9cbb0,0xb7c2c9,0xc9a98c,0xe3e0d6,0x9fb1a3,0xc4b8a8,0xd2b6a0,0xa9adb6];
+  const facade=(x,wid,h,z,dir)=>{const c=cols[(rand()*cols.length)|0];const b=mbox(wid,h,10,c,x+wid/2,h/2+0.15,z+dir*5,w);
+    for(let fy=2.6;fy<h-0.8;fy+=3.1)for(let fx=1.2;fx<wid-0.8;fx+=2.4){mbox(1.2,1.5,0.05,0x2c3a46,x+fx+0.3,fy,z-dir*0.03,w);} return b;};
+  for(let x=-120;x<120;){const wid=7+rand()*8;facade(x,wid,6+rand()*14,6.2,1);x+=wid+0.2;}
+  for(let x=-120;x<120;){const wid=7+rand()*8;facade(x,wid,6+rand()*14,farZ-6.2,-1);x+=wid+0.2;}
+  const trunkM=mat(0x6b5a45),leafM=mat(0x4f7d45);
+  const tree=(x,z)=>{const t=new THREE.Mesh(new THREE.CylinderGeometry(0.12,0.16,2.6,8),trunkM);t.position.set(x,1.45,z);w.add(t);const l=new THREE.Mesh(new THREE.SphereGeometry(1.5,12,10),leafM);l.position.set(x,3.6,z);w.add(l);};
+  for(let x=-120;x<120;x+=9){tree(x-3,1.5);tree(x+1.5,farZ-1.5);}
+  // autos estacionados y demarcación
+  if(key==='a45'){
+    for(let i=-14;i<=14;i++){const x=S45*i;stripe(x,-0.02,x+4.3,-4.3,0.12,0xf5f5f0,w);}
+    dashed(-60,70,-4.3,0.08,0.5,0.4,0x8d9095,w);
+    [-14,-12,-11,-9,-8,-7,-6,-5,-4,-3,-2,-1,1,2,4,5,7,8,9,11,12].forEach((i,j)=>{const c=makeCar(parseInt(PALETTE[(j+2)%PALETTE.length].slice(1),16));placeCar(c,spotPose(i));w.add(c.group);});
+  }else{
+    const P=[[0.9,P_YF],[P_SPOT[0]-LEN+RO,P_YF],[5.9+RO,P_YF-0.05],[P_SPOT[0]-LEN-1.2-LEN+RO,P_YF+0.05]];
+    for(let x=11.5;x<70;x+=5.6)P.push([x,P_YF+(Math.sin(x)*0.06)]);
+    for(let x=-29;x>-70;x-=5.6)P.push([x,P_YF]);
+    P.forEach(([x,y],j)=>{const c=makeCar(parseInt(PALETTE[j%PALETTE.length].slice(1),16));placeCar(c,{x,y,t:0});w.add(c.group);});
+  }
+}
+function refPoint(mark){
+  switch(mark){
+    case 'stop45':return {x:S45+4.3,y:-4.3};
+    case 'align':return {x:0,y:P_YF-0.9};
+    case 'angle':return {x:P_SPOT[0],y:P_YF-0.9};
+    case 'corner':return {x:0,y:P_YF-0.9};
+  }return null;
+}
+function ribbon(pts,wd,color,y){
+  const pos=[];for(let i=0;i<pts.length-1;i++){const a=pts[i],b=pts[i+1];const dx=b[0]-a[0],dz=b[1]-a[1],L=Math.hypot(dx,dz)||1;const nx=-dz/L*wd/2,nz=dx/L*wd/2;
+    pos.push(a[0]+nx,y,a[1]+nz, a[0]-nx,y,a[1]-nz, b[0]+nx,y,b[1]+nz, b[0]+nx,y,b[1]+nz, a[0]-nx,y,a[1]-nz, b[0]-nx,y,b[1]-nz);}
+  const geo=new THREE.BufferGeometry();geo.setAttribute('position',new THREE.Float32BufferAttribute(pos,3));
+  return new THREE.Mesh(geo,new THREE.MeshBasicMaterial({color,side:THREE.DoubleSide,fog:false,transparent:true,opacity:0.92,depthWrite:false}));
+}
+function updateGuides(s){
+  const g=G.guides;while(g.children.length){const m=g.children.pop();m.geometry.dispose();m.material.dispose();}
+  if(viewMode!=='trasera')return;
+  const p=s.p,toPt=(q,lx,ly)=>{const w=toWorld(q,lx,ly);return [w.x,w.y];};
+  // líneas fijas de distancia
+  [[0.5,0xe5483a],[1,0xf5c22b],[2,0x4cc38a]].forEach(([d,c])=>{g.add(ribbon([toPt(p,-RO-d,-0.95),toPt(p,-RO-d,0.95)],0.07,c,0.03));});
+  g.add(ribbon([toPt(p,-RO,-0.95),toPt(p,-RO-2.2,-0.95)],0.05,0xe9ece9,0.03));
+  g.add(ribbon([toPt(p,-RO,0.95),toPt(p,-RO-2.2,0.95)],0.05,0xe9ece9,0.03));
+  // líneas dinámicas según el volante
+  for(const side of [-0.95,0.95]){const pts=[];for(let i=0;i<=30;i++){const q=advance(p,-3.2*i/30,s.k);pts.push(toPt(q,-RO,side));}g.add(ribbon(pts,0.09,0xf5c22b,0.035));}
+}
+function aim(cam,p,lx,ly,h,dx,dy,dh){const a=toWorld(p,lx,ly),b=toWorld(p,lx+dx,ly+dy);cam.position.set(a.x,h,a.y);cam.lookAt(b.x,h+dh,b.y);}
+function renderView(cam,rect,vfov,flip){
+  const R=G.r;cam.fov=vfov;cam.aspect=rect.w/rect.h;cam.updateProjectionMatrix();
+  // Espejo: reflejamos el mundo respecto del plano vertical que pasa por la cámara (así la iluminación sigue correcta)
+  const root=G.root;
+  if(flip){cam.updateMatrixWorld();const n=new THREE.Vector3(1,0,0).applyQuaternion(cam.quaternion);n.y=0;n.normalize();const c=cam.position;
+    const M=new THREE.Matrix4().set(1-2*n.x*n.x,-2*n.x*n.y,-2*n.x*n.z,0, -2*n.y*n.x,1-2*n.y*n.y,-2*n.y*n.z,0, -2*n.z*n.x,-2*n.z*n.y,1-2*n.z*n.z,0, 0,0,0,1);
+    const T1=new THREE.Matrix4().makeTranslation(c.x,c.y,c.z),T0=new THREE.Matrix4().makeTranslation(-c.x,-c.y,-c.z);
+    root.matrix.copy(T1).multiply(M).multiply(T0);}else root.matrix.identity();
+  root.updateMatrixWorld(true);
+  R.setViewport(rect.x,ch-rect.y-rect.h,rect.w,rect.h);R.setScissor(rect.x,ch-rect.y-rect.h,rect.w,rect.h);R.render(G.scene,cam);
+}
+const vfovFromH=(h,aspect)=>2*Math.atan(Math.tan(h*D2R/2)/aspect)/D2R;
+function mirrorRects(){
+  const narrow=cw<ch*1.1;
+  const sw=narrow?cw*0.26:cw*0.16, shh=sw*0.62;
+  return {L:{x:Math.round(cw*0.02),y:Math.round(ch*0.47),w:Math.round(sw),h:Math.round(shh)},
+          R:{x:Math.round(cw*0.98-sw),y:Math.round(ch*0.47),w:Math.round(sw),h:Math.round(shh)},
+          C:{x:Math.round(cw*0.56-cw*0.13),y:Math.round(ch*0.03),w:Math.round(cw*0.26),h:Math.round(Math.max(ch*0.1,cw*0.26*0.28))}};
+}
+function render3d(s,clock){
+  buildWorld(cur===SC.par?'par':'a45');
+  const R=G.r;const key=cw+'x'+ch+'@'+dpr;if(G.size!==key){R.setPixelRatio(dpr);R.setSize(cw,ch,false);G.size=key;}
+  const steer=Math.atan(WB*s.k);placeCar(G.own,s.p,steer);
+  const mark=refPoint(cur.steps[s.si].mark);G.marker.visible=!!mark;
+  if(mark){G.marker.position.set(mark.x,0,mark.y);G.marker.rotation.y=clock/600;}
+  updateGuides(s);
+  const p=s.p,cam=G.cam,full={x:0,y:0,w:cw,h:ch};
+  if(viewMode==='conductor'){
+    G.own.shell.visible=false;G.own.hood.visible=true;G.own.shadow.visible=false;
+    aim(cam,p,1.15,-0.38,1.22,10,0,-0.45);renderView(cam,full,vfovFromH(cw<ch?75:82,cw/ch),false);
+    const m=mirrorRects();
+    G.own.shell.visible=true;G.own.shadow.visible=true;
+    aim(cam,p,2.05,-1.12,1.02,-10,-1.1,-0.5);renderView(cam,m.L,24,true);
+    aim(cam,p,2.05,1.12,1.02,-10,1.4,-1.4);renderView(cam,m.R,24,true);
+    G.own.shell.visible=false;G.own.hood.visible=false;
+    aim(cam,p,1.0,0,1.28,-10,0,-0.9);renderView(cam,m.C,18,true);
+  }else{
+    G.own.shell.visible=false;G.own.hood.visible=false;G.own.shadow.visible=false;
+    aim(cam,p,-RO-0.02,0,0.95,-10,0,-4.2);renderView(cam,full,vfovFromH(cw<ch?95:105,cw/ch),true);
+  }
+  G.own.shell.visible=G.own.hood.visible=G.own.shadow.visible=true;
+}
+/* Capa 2D sobre la vista 3D: cabina, espejos y guías */
+function rrectPath(x,y,w,h,r){rrect(x,y,w,h,r);}
+function drawOverlay3d(s,clock){
+  ctx.setTransform(1,0,0,1,0,0);ctx.clearRect(0,0,cv.width,cv.height);screenT();
+  const Wd=cw,H=ch;
+  if(viewMode==='conductor'){
+    // techo y parantes
+    ctx.fillStyle='#14171a';
+    ctx.beginPath();ctx.moveTo(0,0);ctx.lineTo(Wd,0);ctx.lineTo(Wd,H*0.05);ctx.quadraticCurveTo(Wd*0.5,H*0.1,0,H*0.05);ctx.closePath();ctx.fill();
+    ctx.beginPath();ctx.moveTo(0,0);ctx.lineTo(Wd*0.09,0);ctx.lineTo(Wd*0.045,H*0.6);ctx.lineTo(0,H*0.66);ctx.closePath();ctx.fill();
+    ctx.beginPath();ctx.moveTo(Wd,0);ctx.lineTo(Wd*0.885,0);ctx.lineTo(Wd*0.965,H*0.6);ctx.lineTo(Wd,H*0.64);ctx.closePath();ctx.fill();
+    // tablero
+    const dash=ctx.createLinearGradient(0,H*0.72,0,H);dash.addColorStop(0,'#2a2e33');dash.addColorStop(1,'#101214');
+    ctx.fillStyle=dash;ctx.beginPath();ctx.moveTo(0,H*0.7);ctx.quadraticCurveTo(Wd*0.5,H*0.735,Wd,H*0.7);ctx.lineTo(Wd,H);ctx.lineTo(0,H);ctx.closePath();ctx.fill();
+    ctx.strokeStyle='rgba(255,255,255,.08)';ctx.lineWidth=2;ctx.beginPath();ctx.moveTo(0,H*0.7);ctx.quadraticCurveTo(Wd*0.5,H*0.735,Wd,H*0.7);ctx.stroke();
+    // tablero de instrumentos
+    const R0=Math.min(Wd*0.26,H*0.36), cx=Wd*0.5, cy=H+R0*0.32;
+    ctx.fillStyle='#0b0d0f';rrect(cx-R0*0.75,H*0.735,R0*1.5,R0*0.42,R0*0.12);ctx.fill();
+    ctx.font=`700 ${Math.round(R0*0.17)}px "IBM Plex Mono",monospace`;ctx.textAlign='center';
+    const g=s.gear==='R'?'R':s.gear==='P'?'P':'D';ctx.fillStyle=g==='R'?'#ff8a65':g==='P'?'#9ec5ff':'#7ee2b0';ctx.fillText(g,cx-R0*0.42,H*0.735+R0*0.27);
+    ctx.fillStyle='#e9ece9';ctx.fillText(`${(s.v*3.6).toFixed(0)}`,cx+R0*0.4,H*0.735+R0*0.27);ctx.textAlign='left';
+    const on=!!s.blink&&Math.floor(clock/380)%2===0;
+    for(const sd of [-1,1]){ctx.fillStyle=on&&((sd<0)===(s.blink==='L'))?'#3ddc84':'#25302a';const ax=cx+sd*R0*0.12,ay=H*0.735+R0*0.2,a=R0*0.07;ctx.beginPath();ctx.moveTo(ax+sd*a,ay);ctx.lineTo(ax,ay-a);ctx.lineTo(ax,ay+a);ctx.closePath();ctx.fill();}
+    // volante
+    const deg=Math.atan(WB*s.k)/D2R*RATIO;
+    ctx.save();ctx.translate(cx,cy);ctx.rotate(deg*D2R);
+    ctx.strokeStyle='#1d2024';ctx.lineWidth=R0*0.16;ctx.beginPath();ctx.arc(0,0,R0,0,Math.PI*2);ctx.stroke();
+    ctx.strokeStyle='rgba(255,255,255,.12)';ctx.lineWidth=R0*0.03;ctx.beginPath();ctx.arc(0,0,R0-R0*0.05,Math.PI*1.1,Math.PI*1.9);ctx.stroke();
+    ctx.fillStyle='#1d2024';ctx.beginPath();ctx.arc(0,0,R0*0.26,0,Math.PI*2);ctx.fill();
+    ctx.strokeStyle='#1d2024';ctx.lineWidth=R0*0.12;ctx.beginPath();ctx.moveTo(-R0,0);ctx.lineTo(-R0*0.25,0);ctx.moveTo(R0*0.25,0);ctx.lineTo(R0,0);ctx.stroke();
+    ctx.fillStyle='#f5c22b';ctx.fillRect(-R0*0.04,-R0*1.08,R0*0.08,R0*0.16);
+    ctx.restore();
+    // espejos
+    const m=mirrorRects();const warn=s.gear==='R';
+    for(const [k,r] of Object.entries(m)){
+      {const rad=Math.min(r.w,r.h)*0.28,x=r.x,y=r.y,w=r.w,h=r.h;ctx.beginPath();ctx.rect(x,y,w,h);ctx.moveTo(x+rad,y);ctx.arcTo(x+w,y,x+w,y+h,rad);ctx.arcTo(x+w,y+h,x,y+h,rad);ctx.arcTo(x,y+h,x,y,rad);ctx.arcTo(x,y,x+w,y,rad);ctx.closePath();ctx.fillStyle='#14171a';ctx.fill('evenodd');}
+      ctx.strokeStyle=warn?'#f5c22b':'#0d0f11';ctx.lineWidth=warn?3:4;rrect(r.x,r.y,r.w,r.h,Math.min(r.w,r.h)*0.28);ctx.stroke();
+    }
+    if(warn){const r=m.L;ctx.font='600 12px "Public Sans",sans-serif';const t='Marcha atrás: mirá los espejos';const tw=ctx.measureText(t).width+12;
+      ctx.fillStyle='rgba(18,20,23,.88)';rrect(r.x,r.y-28,tw,22,4);ctx.fill();ctx.fillStyle='#f5c22b';ctx.fillText(t,r.x+6,r.y-12);}
+  }else{
+    // cámara trasera: paragolpes y leyenda
+    ctx.fillStyle='#1a1d20';ctx.beginPath();ctx.moveTo(0,H);ctx.lineTo(0,H*0.93);ctx.quadraticCurveTo(Wd*0.5,H*0.84,Wd,H*0.93);ctx.lineTo(Wd,H);ctx.closePath();ctx.fill();
+    const vg=ctx.createRadialGradient(Wd/2,H/2,Math.min(Wd,H)*0.35,Wd/2,H/2,Math.max(Wd,H)*0.75);vg.addColorStop(0,'rgba(0,0,0,0)');vg.addColorStop(1,'rgba(0,0,0,.45)');ctx.fillStyle=vg;ctx.fillRect(0,0,Wd,H);
+    ctx.font='600 12px "Public Sans",sans-serif';const items=[['0,5 m','#e5483a'],['1 m','#f5c22b'],['2 m','#4cc38a']];
+    let y=H*0.3;for(const [t,c] of items){ctx.fillStyle='rgba(18,20,23,.75)';rrect(Wd-70,y,60,20,4);ctx.fill();ctx.fillStyle=c;ctx.fillRect(Wd-64,y+8,12,4);ctx.fillStyle='#e9ece9';ctx.fillText(t,Wd-46,y+14);y+=26;}
+    ctx.fillStyle='rgba(18,20,23,.75)';const t='Revisá también los espejos';ctx.font='600 12px "Public Sans",sans-serif';const tw=ctx.measureText(t).width+14;rrect(Wd/2-tw/2,H*0.8-26,tw,22,4);ctx.fill();ctx.fillStyle='#e9ece9';ctx.textAlign='center';ctx.fillText(t,Wd/2,H*0.8-11);ctx.textAlign='left';
+  }
+}
+function setView(v){
+  if(v!=='aerea'&&!initGL()){v='aerea';const n=document.getElementById('glNote');if(n)n.hidden=false;}
+  viewMode=v;glc.hidden=v==='aerea';
+  document.querySelectorAll('.views .tab').forEach(b=>b.setAttribute('aria-checked',b.dataset.view===v));
+  $('viewLbl').textContent=VIEWS[v];
+  try{localStorage.setItem('estac-view',v);}catch(e){}
+  resize();
+}
+document.querySelectorAll('.views .tab').forEach(b=>b.addEventListener('click',()=>setView(b.dataset.view)));
+$('viewBtn').addEventListener('click',()=>{const k=Object.keys(VIEWS);setView(k[(k.indexOf(viewMode)+1)%k.length]);});
 
 function renderPanel(){
   $('pTitle').textContent=cur.title;$('pLead').textContent=cur.lead;
@@ -735,6 +993,7 @@ $('tab-a45').addEventListener('click',()=>selectScenario('a45'));
 $('tab-par').addEventListener('click',()=>selectScenario('par'));
 
 const reduce=window.matchMedia('(prefers-reduced-motion: reduce)').matches;
+try{const v=localStorage.getItem('estac-view');if(v&&VIEWS[v]&&v!=='aerea')setTimeout(()=>setView(v),0);}catch(e){}
 build(SC.a45);build(SC.par);
 new ResizeObserver(()=>resize()).observe(box);
 let initial='a45';try{initial=localStorage.getItem('estac-tab')||'a45';}catch(e){}
